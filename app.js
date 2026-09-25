@@ -101,6 +101,7 @@
   try { catalogo = await API.catalogo(); } catch (e) { toast("No se pudo leer el catálogo de capas: " + e.message, true); }
 
   async function activarCapa(entry, on, silencioso = false) {
+    if (entry.origen && entry.origen !== "supabase" && window.Externas) return window.Externas.activar(entry, on, mapa);
     if (!on) { if (capasMapa[entry.capa]) mapa.removeLayer(capasMapa[entry.capa]); return; }
     if (!capasMapa[entry.capa]) {
       try {
@@ -348,6 +349,7 @@
     const entry = catalogo.find((c) => c.capa === "departamentos") || { capa: "departamentos", titulo: "Departamentos", tema: "base", estilo: { color: "#555", fillOpacity: 0, weight: 1.2 } };
     const chk = $('input[data-capa="departamentos"]'); if (chk) chk.checked = true;
     await activarCapa(entry, true);
+    if (!datosCapa.departamentos?.features?.length) { try { toast("Cargando departamentos…"); datosCapa.departamentos = await API.capa("departamentos", { tolerancia: 0.005 }); } catch (e) { toast("No se pudieron cargar los departamentos: " + e.message, true); } }
     if (!datosCapa.departamentos?.features?.length) return;
     modoDepto = true; mapa.getContainer().style.cursor = "pointer"; toast("Haga clic sobre un departamento");
   };
@@ -500,6 +502,7 @@
         ? Object.entries(porCapa).map(([k, items]) => `<div class="subt">${esc(titulo(k))}</div>${barras(items.slice(0, 12), { unidad: "ha", total: areaHa })}`).join("")
         : `<p class="muted">No hay capas vectoriales con datos en esta área${API.modo === "demo" ? " (modo demo: conecte Supabase o cargue una capa propia)" : ""}.</p>`;
     } else $("#res-capas").innerHTML = `<p class="aviso-err">Error: ${esc(rRes.reason?.message)}</p>`;
+    if (res?.externas_errores?.length) $("#res-capas").insertAdjacentHTML("beforeend", `<p class="nota">Sin respuesta del servidor (intente de nuevo): ${esc(res.externas_errores.join(", "))}</p>`);
 
     // Carbono
     const m = res?.muestras_carbono;
@@ -509,6 +512,7 @@
         ${tile(nf0.format(soil.total_t), "t C", "Stock total")}${tile(nf0.format(soil.co2e_t), "t CO₂e", "CO₂ equivalente")}</div>
         <p class="nota">${nf0.format(soil.pixeles)} píxeles de ~${soil.res_m} m. Modelo global con incertidumbre alta a escala local.</p>`
         : `<p class="aviso-err">No se pudo recortar SoilGrids: ${esc(rSoil.reason?.message)}</p>`}
+      ${res?.carbono_igac?.n ? `<div class="subt">Mapa nacional de carbono orgánico IGAC–FAO (0–30 cm)</div><div class="tiles">${tile(fmt(res.carbono_igac.media, 1), "t C/ha", `Media de ${res.carbono_igac.n} puntos`)}${tile(`${fmt(res.carbono_igac.min, 0)}–${fmt(res.carbono_igac.max, 0)}`, "t C/ha", "Rango")}${tile(nf0.format(res.carbono_igac.total_t), "t C", "Stock total estimado")}${tile(nf0.format(res.carbono_igac.co2e_t), "t CO₂e", "CO₂ equivalente")}</div><p class="nota">Muestreo de ${res.carbono_igac.n} puntos dentro del área sobre el mapa oficial del IGAC.</p>` : res?.carbono_igac?.error ? `<p class="aviso-err">Mapa de carbono IGAC no disponible: ${esc(res.carbono_igac.error)}</p>` : ""}
       <div class="subt">Muestras propias dentro del área</div>
       ${m && m.n ? `<div class="tiles">${tile(m.n, "", "Muestras")}${tile(fmt(m.stock_medio_tha, 1), "t C/ha", `Stock medio (${fmt(m.stock_min_tha, 0)}–${fmt(m.stock_max_tha, 0)})`)}
         ${tile(nf0.format(m.carbono_total_t), "t C", "Total extrapolado")}${tile(nf0.format(m.co2e_total_t), "t CO₂e", "CO₂e extrapolado")}</div>
@@ -604,5 +608,5 @@
     e.target.value = "";
   });
 
-  window.__geoportal = { mapa, API, fijarArea, soilgridsArea, gbifArea, geometriaWKT }; // depuración
+  window.__geoportal = { mapa, API, fijarArea, soilgridsArea, gbifArea, geometriaWKT, toast, datosCapa }; // depuración
 })();
