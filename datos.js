@@ -109,7 +109,7 @@
       if (this.sb) {
         const { data, error } = await this.sb.rpc("capa_geojson", { p_capa: capa, p_tolerancia: tolerancia, p_bbox: bbox });
         if (error) throw error;
-        return data || FC();
+        if (data?.features?.length || capa !== "departamentos") return data || FC();
       }
       if (capa === "departamentos") {
         const r = await fetch(CFG.LIMITES_DEPTOS_DEMO);

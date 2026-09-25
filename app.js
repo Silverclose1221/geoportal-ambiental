@@ -52,7 +52,7 @@
   // ---------------------------------------------------------------- mapa
   const mapa = L.map("mapa", { zoomControl: true, preferCanvas: true }).setView(CFG.CENTRO, CFG.ZOOM);
   const bases = {
-    "Mapa claro": L.tileLayer("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png", { maxZoom: 19, attribution: "© OpenStreetMap, © CARTO" }),
+    "Mapa claro": L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}", { maxZoom: 16, attribution: "Esri, HERE, Garmin, © OpenStreetMap" }),
     "OpenStreetMap": L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 19, attribution: "© OpenStreetMap" }),
     "Imagen satelital": L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", { maxZoom: 19, attribution: "Esri, Maxar, Earthstar Geographics" }),
   };
@@ -68,8 +68,8 @@
   if (modo === "supabase") { badge.textContent = "Conectado a Supabase"; badge.className = "badge ok"; }
   else {
     badge.textContent = "Modo demo"; badge.className = "badge demo";
-    badge.title = API.errorConexion ? `Error de conexión: ${API.errorConexion}` : "Configure SUPABASE_URL y SUPABASE_ANON_KEY en js/config.js";
-    if (API.errorConexion) toast("No se pudo conectar a Supabase; se usa modo demo. Revise js/config.js", true);
+    badge.title = API.errorConexion ? `Error de conexión: ${API.errorConexion}` : "Configure SUPABASE_URL y SUPABASE_ANON_KEY en config.js";
+    if (API.errorConexion) toast("No se pudo conectar a Supabase; se usa modo demo. Revise config.js", true);
   }
   function actualizarUsuario() {
     const u = API.usuario;
@@ -100,7 +100,7 @@
   let catalogo = [];
   try { catalogo = await API.catalogo(); } catch (e) { toast("No se pudo leer el catálogo de capas: " + e.message, true); }
 
-  async function activarCapa(entry, on) {
+  async function activarCapa(entry, on, silencioso = false) {
     if (!on) { if (capasMapa[entry.capa]) mapa.removeLayer(capasMapa[entry.capa]); return; }
     if (!capasMapa[entry.capa]) {
       try {
@@ -108,7 +108,7 @@
         const fc = await API.capa(entry.capa, { tolerancia: tol });
         datosCapa[entry.capa] = fc;
         if (!fc.features.length) {
-          toast(`La capa "${entry.titulo}" aún no tiene datos. Cárguela en Supabase (ver README).`, true);
+          if (!silencioso) toast(`La capa "${entry.titulo}" aún no tiene datos. Cárguela en Supabase (ver README).`, true);
           const chk = $(`input[data-capa="${entry.capa}"]`); if (chk) chk.checked = false;
           return;
         }
@@ -139,7 +139,7 @@
     $$("input[data-capa]").forEach((chk) => {
       const entry = catalogo.find((c) => c.capa === chk.dataset.capa);
       chk.addEventListener("change", () => activarCapa(entry, chk.checked));
-      if (chk.checked) activarCapa(entry, true);
+      if (chk.checked) activarCapa(entry, true, true);
     });
     if (API.modo === "demo") {
       $$(".lista-capas").forEach((l) => l.insertAdjacentHTML("beforeend", `<p class="capa-vacia">Modo demo: las capas oficiales se activan al conectar Supabase y cargarlas (ver README).</p>`));
@@ -202,7 +202,7 @@
     ["Agua permanente", "#0064c8"], ["Humedal herbáceo", "#0096a0"], ["Manglar", "#00cf75"], ["Musgos y líquenes", "#fae6a0"],
   ];
   $("#leyenda-worldcover").innerHTML = WC_CLASES.map(([n, c]) => `<div class="leyenda-item"><i style="background:${c}"></i>${n}</div>`).join("") + `<p class="muted">ESA WorldCover 2021 v200 (10 m). © ESA WorldCover project / Copernicus.</p>`;
-  const capaWorldCover = L.tileLayer.wms(CFG.WORLDCOVER_WMS, { layers: "WORLDCOVER_2021_MAP", format: "image/png", transparent: true, opacity: 0.75, attribution: "ESA WorldCover 2021", zIndex: 300 });
+  const capaWorldCover = L.tileLayer.wms(CFG.WORLDCOVER_WMS, { layers: "esa-worldcover-map-10m-2021-v2_map", version: "1.3.0", styles: "", TIME: "2021-01-01", format: "image/png", transparent: true, opacity: 0.75, attribution: "ESA WorldCover 2021", zIndex: 300 });
   $("#worldcover-on").onchange = (e) => { $("#leyenda-worldcover").hidden = !e.target.checked; e.target.checked ? capaWorldCover.addTo(mapa) : mapa.removeLayer(capaWorldCover); };
 
   const capaSoilGrids = L.tileLayer.wms(CFG.SOILGRIDS_OCS, { layers: "ocs_0-30cm_mean", format: "image/png", transparent: true, opacity: 0.75, attribution: "ISRIC SoilGrids 2.0 (CC-BY 4.0)", zIndex: 310 });
