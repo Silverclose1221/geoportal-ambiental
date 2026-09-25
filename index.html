@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Geoportal Ambiental de Colombia</title>
+  <meta name="description" content="Biodiversidad, políticas de desarrollo sostenible, uso del suelo y carbono orgánico del suelo en Colombia." />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><circle cx='16' cy='16' r='14' fill='%232f7d4f'/><path d='M9 20c6 0 11-5 13-12-8 1-13 6-13 12z' fill='white'/></svg>" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.css" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <svg viewBox="0 0 32 32" width="28" height="28" aria-hidden="true"><circle cx="16" cy="16" r="14" fill="var(--brand)"/><path d="M9 20c6 0 11-5 13-12-8 1-13 6-13 12z" fill="#fff"/></svg>
+      <div>
+        <h1>Geoportal Ambiental de Colombia</h1>
+        <p class="sub">Biodiversidad · Normas y uso del suelo · Carbono orgánico del suelo</p>
+      </div>
+    </div>
+    <div class="top-actions">
+      <span id="estado-conexion" class="badge">Conectando…</span>
+      <span id="usuario" class="usuario" hidden></span>
+      <button id="btn-login" class="btn btn-ghost" hidden>Iniciar sesión</button>
+      <button id="btn-logout" class="btn btn-ghost" hidden>Salir</button>
+    </div>
+  </header>
+
+  <main class="layout">
+    <aside class="panel" aria-label="Panel de control">
+      <nav class="tabs" role="tablist">
+        <button role="tab" class="tab activa" data-tab="bio">Biodiversidad</button>
+        <button role="tab" class="tab" data-tab="normas">Normas y suelo</button>
+        <button role="tab" class="tab" data-tab="carbono">Carbono</button>
+        <button role="tab" class="tab" data-tab="analisis">Análisis de área</button>
+      </nav>
+
+      <!-- ============ BIODIVERSIDAD ============ -->
+      <section class="tab-panel activa" id="tab-bio" role="tabpanel">
+        <div class="card">
+          <h2>Registros de especies (GBIF)</h2>
+          <label class="switch"><input type="checkbox" id="gbif-on" checked /> Densidad de registros en Colombia</label>
+          <div class="field">
+            <label for="gbif-taxon">Filtrar por taxón (especie, género, familia…)</label>
+            <input id="gbif-taxon" list="gbif-sugerencias" placeholder="Ej: Tremarctos ornatus, Aves, Orchidaceae" autocomplete="off" />
+            <datalist id="gbif-sugerencias"></datalist>
+          </div>
+          <div class="row">
+            <div class="field">
+              <label for="gbif-estilo">Representación</label>
+              <select id="gbif-estilo">
+                <option value="hex">Hexágonos</option>
+                <option value="puntos">Puntos</option>
+              </select>
+            </div>
+            <button id="gbif-limpiar" class="btn btn-ghost self-end">Quitar filtro</button>
+          </div>
+          <p class="muted" id="gbif-conteo">—</p>
+        </div>
+
+        <div class="card">
+          <h2>Capas de biodiversidad</h2>
+          <div id="capas-biodiversidad" class="lista-capas"></div>
+        </div>
+
+        <div class="card">
+          <h2>Mis observaciones</h2>
+          <label class="switch"><input type="checkbox" id="obs-on" checked /> Mostrar observaciones registradas</label>
+          <details>
+            <summary>Registrar observación</summary>
+            <form id="form-obs" class="form">
+              <div class="field"><label>Especie (nombre científico)*</label><input name="especie" list="gbif-sugerencias" required /></div>
+              <div class="row">
+                <div class="field"><label>Nombre común</label><input name="nombre_comun" /></div>
+                <div class="field"><label>Grupo</label>
+                  <select name="grupo"><option>Aves</option><option>Mamíferos</option><option>Reptiles</option><option>Anfibios</option><option>Peces</option><option>Insectos</option><option>Plantas</option><option>Hongos</option><option>Otro</option></select></div>
+              </div>
+              <div class="row">
+                <div class="field"><label>Individuos</label><input name="individuos" type="number" min="1" value="1" /></div>
+                <div class="field"><label>Fecha</label><input name="fecha" type="date" /></div>
+                <div class="field"><label>UICN</label>
+                  <select name="categoria_uicn"><option value="">—</option><option>LC</option><option>NT</option><option>VU</option><option>EN</option><option>CR</option><option>DD</option></select></div>
+              </div>
+              <div class="row">
+                <div class="field"><label>Latitud*</label><input name="lat" type="number" step="any" required /></div>
+                <div class="field"><label>Longitud*</label><input name="lon" type="number" step="any" required /></div>
+                <button type="button" class="btn btn-ghost self-end" data-ubicar="form-obs">Ubicar en mapa</button>
+              </div>
+              <div class="field"><label>Notas</label><textarea name="observaciones" rows="2"></textarea></div>
+              <button class="btn" type="submit">Guardar observación</button>
+            </form>
+          </details>
+        </div>
+      </section>
+
+      <!-- ============ NORMAS Y USO DEL SUELO ============ -->
+      <section class="tab-panel" id="tab-normas" role="tabpanel">
+        <div class="card">
+          <h2>Uso y cobertura del suelo</h2>
+          <label class="switch"><input type="checkbox" id="worldcover-on" /> Cobertura ESA WorldCover 2021 (10 m)</label>
+          <div id="leyenda-worldcover" class="leyenda" hidden></div>
+          <div id="capas-politicas_uso" class="lista-capas"></div>
+        </div>
+        <div class="card">
+          <h2>Normas y políticas</h2>
+          <div class="field"><input id="normas-buscar" placeholder="Buscar: páramos, carbono, ODS…" /></div>
+          <div class="chips" id="normas-filtros">
+            <button class="chip activa" data-tema="">Todas</button>
+            <button class="chip" data-tema="biodiversidad">Biodiversidad</button>
+            <button class="chip" data-tema="uso_suelo">Uso del suelo</button>
+            <button class="chip" data-tema="carbono">Carbono</button>
+            <button class="chip" data-tema="desarrollo_sostenible">Desarrollo sostenible</button>
+          </div>
+          <div id="normas-lista" class="normas"></div>
+        </div>
+      </section>
+
+      <!-- ============ CARBONO ============ -->
+      <section class="tab-panel" id="tab-carbono" role="tabpanel">
+        <div class="card">
+          <h2>Mapa de referencia</h2>
+          <label class="switch"><input type="checkbox" id="soilgrids-on" /> Stock de COS 0–30 cm (SoilGrids, t C/ha)</label>
+          <div id="leyenda-soilgrids" class="leyenda" hidden>
+            <img alt="Leyenda SoilGrids stock de carbono orgánico" loading="lazy" />
+            <p class="muted">Modelo global a 250 m (ISRIC). Úselo como referencia, no reemplaza el muestreo en campo.</p>
+          </div>
+          <div id="capas-carbono" class="lista-capas"></div>
+          <label class="switch"><input type="checkbox" id="muestras-on" checked /> Muestras de suelo registradas</label>
+          <div id="leyenda-muestras" class="leyenda"></div>
+        </div>
+
+        <div class="card">
+          <h2>Calculadora de stock de carbono</h2>
+          <p class="formula">Stock COS (t C/ha) = COS (%) × DA (g/cm³) × espesor (cm) × (1 − pedregosidad)<br />CO₂e = Stock × 44/12</p>
+          <form id="form-carbono" class="form">
+            <div class="row">
+              <div class="field"><label>COS (%)*</label><input name="cos_pct" type="number" step="any" min="0" max="60" required /></div>
+              <div class="field"><label>Densidad aparente (g/cm³)*</label><input name="densidad_aparente" type="number" step="any" min="0.05" max="2.6" required /></div>
+            </div>
+            <div class="row">
+              <div class="field"><label>Prof. superior (cm)</label><input name="prof_sup_cm" type="number" step="any" min="0" value="0" /></div>
+              <div class="field"><label>Prof. inferior (cm)*</label><input name="prof_inf_cm" type="number" step="any" min="1" value="30" required /></div>
+              <div class="field"><label>Pedregosidad (%)</label><input name="pedregosidad_pct" type="number" step="any" min="0" max="99" value="0" /></div>
+            </div>
+            <div class="field"><label>Área a extrapolar (ha, opcional)</label><input name="area_ha" type="number" step="any" min="0" /></div>
+            <div id="carbono-resultado" class="tiles"></div>
+
+            <details>
+              <summary>Guardar como muestra georreferenciada</summary>
+              <div class="row">
+                <div class="field"><label>Código</label><input name="codigo" /></div>
+                <div class="field"><label>Fecha</label><input name="fecha_muestreo" type="date" /></div>
+              </div>
+              <div class="row">
+                <div class="field"><label>Cobertura</label>
+                  <select name="cobertura"><option>Bosque</option><option>Rastrojo</option><option>Pastos</option><option>Cultivo</option><option>Sistema agroforestal</option><option>Páramo</option><option>Humedal</option><option>Otro</option></select></div>
+                <div class="field"><label>Municipio</label><input name="municipio" /></div>
+              </div>
+              <div class="row">
+                <div class="field"><label>Latitud*</label><input name="lat" type="number" step="any" /></div>
+                <div class="field"><label>Longitud*</label><input name="lon" type="number" step="any" /></div>
+                <button type="button" class="btn btn-ghost self-end" data-ubicar="form-carbono">Ubicar en mapa</button>
+              </div>
+              <div class="field"><label>Método de COS</label><input name="metodo_cos" value="Walkley-Black" /></div>
+              <button class="btn" type="submit">Guardar muestra</button>
+            </details>
+          </form>
+        </div>
+
+        <div class="card">
+          <h2>Carga masiva de muestras (CSV)</h2>
+          <p class="muted">Columnas: codigo, fecha_muestreo, municipio, departamento, cobertura, lat, lon, prof_sup_cm, prof_inf_cm, cos_pct, densidad_aparente, pedregosidad_pct</p>
+          <div class="row">
+            <button id="csv-plantilla" class="btn btn-ghost" type="button">Descargar plantilla</button>
+            <label class="btn btn-ghost file"><input id="csv-archivo" type="file" accept=".csv,text/csv" />Seleccionar CSV</label>
+          </div>
+          <p id="csv-estado" class="muted"></p>
+        </div>
+      </section>
+
+      <!-- ============ ANÁLISIS DE ÁREA ============ -->
+      <section class="tab-panel" id="tab-analisis" role="tabpanel">
+        <div class="card">
+          <h2>1. Defina el área</h2>
+          <div class="grid-btn">
+            <button class="btn btn-ghost" id="dibujar-poligono">Dibujar polígono</button>
+            <button class="btn btn-ghost" id="dibujar-rectangulo">Dibujar rectángulo</button>
+            <button class="btn btn-ghost" id="elegir-depto">Elegir departamento</button>
+            <label class="btn btn-ghost file"><input id="subir-area" type="file" accept=".geojson,.json,.zip" />Subir polígono</label>
+          </div>
+          <p id="area-info" class="muted">Ningún área seleccionada.</p>
+          <button class="btn" id="btn-analizar" disabled>2. Analizar área</button>
+          <button class="btn btn-ghost" id="btn-limpiar-area" disabled>Limpiar</button>
+        </div>
+
+        <div id="resultados" hidden>
+          <div class="card">
+            <h2>Resumen</h2>
+            <div id="res-tiles" class="tiles"></div>
+          </div>
+          <div class="card">
+            <h2>Biodiversidad (GBIF)</h2>
+            <div id="res-bio"></div>
+          </div>
+          <div class="card">
+            <h2>Capas y uso del suelo</h2>
+            <div id="res-capas"></div>
+          </div>
+          <div class="card">
+            <h2>Carbono orgánico del suelo</h2>
+            <div id="res-carbono"></div>
+          </div>
+          <div class="card">
+            <button class="btn btn-ghost" id="descargar-resumen">Descargar resumen (CSV)</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2>3. Recortar y descargar capas</h2>
+          <div class="field">
+            <label for="recorte-capa">Capa a recortar con el área</label>
+            <select id="recorte-capa"></select>
+          </div>
+          <div class="row">
+            <button class="btn" id="btn-recortar" disabled>Recortar</button>
+            <button class="btn btn-ghost" id="btn-desc-geojson" disabled>GeoJSON</button>
+            <button class="btn btn-ghost" id="btn-desc-csv" disabled>CSV</button>
+          </div>
+          <p id="recorte-info" class="muted"></p>
+        </div>
+
+        <div class="card">
+          <h2>Capa propia</h2>
+          <p class="muted">Visualice y recorte su propia capa (GeoJSON o Shapefile comprimido en .zip, en WGS84).</p>
+          <label class="btn btn-ghost file"><input id="subir-capa" type="file" accept=".geojson,.json,.zip" />Cargar capa</label>
+          <p id="capa-propia-info" class="muted"></p>
+        </div>
+      </section>
+      <footer class="creditos">
+        Datos: GBIF.org · ISRIC SoilGrids · ESA WorldCover · geoBoundaries · capas oficiales cargadas en la base de datos (IDEAM, IGAC, PNN, DANE, UPRA). Verifique siempre la fuente oficial.
+      </footer>
+    </aside>
+
+    <div class="mapa-wrap">
+      <div id="mapa" aria-label="Mapa"></div>
+      <div id="coords" class="coords"></div>
+      <div id="aviso-ubicar" class="aviso" hidden>Haga clic en el mapa para ubicar el punto · <button class="link" id="cancelar-ubicar">cancelar</button></div>
+    </div>
+  </main>
+
+  <dialog id="dlg-login">
+    <form method="dialog" id="form-login">
+      <h2>Iniciar sesión</h2>
+      <p class="muted">Le enviaremos un enlace de acceso a su correo. Solo se necesita para guardar muestras y observaciones.</p>
+      <div class="field"><label>Correo</label><input type="email" name="email" required /></div>
+      <div class="row">
+        <button class="btn" value="ok">Enviar enlace</button>
+        <button class="btn btn-ghost" value="cancel" formnovalidate>Cancelar</button>
+      </div>
+    </form>
+  </dialog>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@turf/turf@7.1.0/turf.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/geotiff@2.1.3/dist-browser/geotiff.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/shpjs@4.0.4/dist/shp.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+  <script src="config.js"></script>
+  <script src="datos.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
