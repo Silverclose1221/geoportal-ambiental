@@ -41,7 +41,7 @@
   }
 
   // Consulta de entidades (paginada) en formato GeoJSON
-  async function consultar(entry, { bbox, punto, where = "1=1", geometria = true, simplificar = 0, max = 15000, campos = "*" } = {}) {
+  async function consultar(entry, { bbox, punto, where = "1=1", geometria = true, simplificar = 0, max = 15000, campos = "*", ms = TIMEOUT } = {}) {
     const base = { where, outFields: campos, returnGeometry: geometria, outSR: 4326, f: "geojson", geometryPrecision: 6 };
     if (simplificar) base.maxAllowableOffset = simplificar;
     if (bbox) Object.assign(base, { geometry: bbox.join(","), geometryType: "esriGeometryEnvelope", inSR: 4326, spatialRel: "esriSpatialRelIntersects" });
@@ -49,7 +49,7 @@
     const pagina = 1000;
     let features = [], offset = 0;
     for (let i = 0; i < 20 && features.length < max; i++) {
-      const j = await pedir(`${entry.servicio}/${entry.capa_id}/query?${q({ ...base, resultOffset: offset, resultRecordCount: pagina })}`);
+      const j = await pedir(`${entry.servicio}/${entry.capa_id}/query?${q({ ...base, resultOffset: offset, resultRecordCount: pagina })}`, ms);
       const fs = j.features || [];
       features = features.concat(fs);
       const excedido = j.exceededTransferLimit || j.properties?.exceededTransferLimit;
@@ -68,6 +68,24 @@
     const k = Object.keys(at).find((x) => /pixel value/i.test(x));
     const v = k ? parseFloat(String(at[k]).replace(",", ".")) : NaN;
     return Number.isFinite(v) && v > 0 ? v : null;
+  }
+
+  // Respaldo cuando el IGAC no responde: límites de geoBoundaries (abiertos, en GitHub)
+  const GB = "https://media.githubusercontent.com/media/wmgeolab/geoBoundaries/main/releaseData/gbOpen/COL/";
+  const gbCache = {};
+  const sinTildes = (s) => String(s || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase();
+  async function respaldo(nivel) {
+    if (!gbCache[nivel]) gbCache[nivel] = fetch(`${GB}${nivel}/geoBoundaries-COL-${nivel}_simplified.geojson`).then((r) => r.json());
+    return gbCache[nivel];
+  }
+  async function buscarRespaldo(txt) {
+    const [mun, dep] = await Promise.all([respaldo("ADM2"), respaldo("ADM1")]);
+    const t = sinTildes(txt);
+    return mun.features.filter((f) => sinTildes(f.properties.shapeName).includes(t)).slice(0, 15).map((f) => {
+      const c = turf.pointOnFeature(f);
+      const d = dep.features.find((x) => turf.booleanPointInPolygon(c, x));
+      return { etiqueta: `${f.properties.shapeName} (${d?.properties.shapeName || "Colombia"})`, feature: f };
+    });
   }
 
   // Capa de mapa: imágenes del servicio (export) en teselas de 512 px
@@ -166,8 +184,17 @@
     if (!esExterna(entry)) return origCapa(capa, opts);
     if (cacheCapas[capa]) return cacheCapas[capa];
     // Solo se descarga completa si es pequeña (departamentos); las demás se consultan por área
-    const fc = await consultar(entry, { simplificar: opts.tolerancia || 0.005, max: 3000 });
-    return (cacheCapas[capa] = fc);
+    try {
+      const fc = await consultar(entry, { simplificar: opts.tolerancia || 0.005, max: 3000, ms: 12000 });
+      if (!fc.features.length) throw new Error("sin datos");
+      return (cacheCapas[capa] = fc);
+    } catch (e) {
+      if (capa !== "departamentos") throw e;
+      window.__geoportal?.toast?.("El IGAC no responde; se usan límites de respaldo (geoBoundaries)");
+      const gj = await respaldo("ADM1");
+      gj.features.forEach((f) => { f.properties.nombre = f.properties.clase = f.properties.shapeName; });
+      return (cacheCapas[capa] = gj);
+    }
   };
 
   const origRecortar = API.recortar.bind(API);
@@ -213,23 +240,38 @@
           const entry = catalogo.find((e) => e.capa === "municipios" && esExterna(e));
           if (!entry) return;
           const limpio = txt.replace(/'/g, "''").split(" (")[0];
+          let lista = [];
           try {
-            const fc = await consultar(entry, { where: `UPPER(${entry.campo_nombre}) LIKE UPPER('%${limpio}%')`, geometria: false, max: 15, campos: "MpCodigo,MpNombre,Depto" });
-            document.querySelector("#mpios-sug").innerHTML = fc.features.slice(0, 15).map((f) => {
-              const et = `${f.properties.MpNombre} (${f.properties.Depto})`;
-              opciones.set(et, f.properties.MpCodigo);
-              return `<option value="${et.replace(/"/g, "&quot;")}"></option>`;
-            }).join("");
-          } catch (e) { window.__geoportal?.toast?.("Búsqueda de municipios: " + e.message, true); }
+            const fc = await consultar(entry, { where: `UPPER(${entry.campo_nombre}) LIKE UPPER('%${limpio}%')`, geometria: false, max: 15, campos: "MpCodigo,MpNombre,Depto", ms: 8000 });
+            lista = fc.features.map((f) => ({ etiqueta: `${f.properties.MpNombre} (${f.properties.Depto})`, codigo: f.properties.MpCodigo }));
+          } catch (e) {
+            try { lista = await buscarRespaldo(limpio); window.__geoportal?.toast?.("El IGAC no responde; se usan límites de respaldo (geoBoundaries)"); }
+            catch (e2) { window.__geoportal?.toast?.("Búsqueda de municipios: " + e2.message, true); }
+          }
+          document.querySelector("#mpios-sug").innerHTML = lista.slice(0, 15).map((o) => {
+            opciones.set(o.etiqueta, o);
+            return `<option value="${o.etiqueta.replace(/"/g, "&quot;")}"></option>`;
+          }).join("");
         }, 300);
       });
       input.addEventListener("change", () => opciones.has(input.value.trim()) && seleccionar(input.value.trim()));
       async function seleccionar(et) {
         const entry = catalogo.find((e) => e.capa === "municipios");
+        const op = opciones.get(et);
         try {
-          const fc = await consultar(entry, { where: `MpCodigo='${opciones.get(et)}'`, simplificar: 0.0001, max: 1 });
-          if (!fc.features.length) throw new Error("no encontrado");
-          window.__geoportal.fijarArea({ type: "Feature", geometry: fc.features[0].geometry, properties: {} }, et);
+          let geom = op.feature?.geometry;
+          if (!geom) {
+            try {
+              const fc = await consultar(entry, { where: `MpCodigo='${op.codigo}'`, simplificar: 0.0001, max: 1, ms: 12000 });
+              geom = fc.features[0]?.geometry;
+            } catch (e) {
+              const alt = (await buscarRespaldo(et.split(" (")[0])).find((o) => sinTildes(o.etiqueta).startsWith(sinTildes(et.split(" (")[0])));
+              geom = alt?.feature.geometry;
+              if (geom) window.__geoportal?.toast?.("El IGAC no responde; se usa el límite de respaldo (geoBoundaries)");
+            }
+          }
+          if (!geom) throw new Error("no encontrado");
+          window.__geoportal.fijarArea({ type: "Feature", geometry: geom, properties: {} }, et);
         } catch (e) { window.__geoportal?.toast?.("No se pudo cargar el municipio: " + e.message, true); }
       }
     }
