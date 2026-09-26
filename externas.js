@@ -10,6 +10,7 @@
   const activas = new Map(); // capa -> { entry, capaMapa }
   const cacheCapas = {};
 
+  const ROMANOS = { I: "1", II: "2", III: "3", IV: "4", V: "5", VI: "6", VII: "7", VIII: "8" };
   const esExterna = (e) => e && (e.origen === "arcgis" || e.origen === "arcgis_raster");
   const q = (obj) => new URLSearchParams(obj).toString();
 
@@ -33,7 +34,7 @@
       const p = f.properties || (f.properties = {});
       const nom = entry.campo_nombre ? p[entry.campo_nombre] : null;
       let cla = entry.campo_clase ? p[entry.campo_clase] : null;
-      if (cla !== null && cla !== undefined && entry.plantilla_clase) cla = entry.plantilla_clase.replace("{v}", cla);
+      if (cla !== null && cla !== undefined && entry.plantilla_clase) cla = entry.plantilla_clase.replace("{v}", ROMANOS[String(cla).trim().toUpperCase()] || String(cla).trim());
       p.nombre = nom ?? p.nombre ?? null;
       p.clase = cla ?? p.clase ?? nom ?? null;
     }
@@ -49,7 +50,14 @@
     const pagina = 1000;
     let features = [], offset = 0;
     for (let i = 0; i < 20 && features.length < max; i++) {
-      const j = await pedir(`${entry.servicio}/${entry.capa_id}/query?${q({ ...base, resultOffset: offset, resultRecordCount: pagina })}`, ms);
+      let j;
+      try {
+        j = await pedir(`${entry.servicio}/${entry.capa_id}/query?${q({ ...base, resultOffset: offset, resultRecordCount: pagina })}`, ms);
+      } catch (e) {
+        if (!/pagination/i.test(e.message) || offset) throw e;
+        j = await pedir(`${entry.servicio}/${entry.capa_id}/query?${q(base)}`, ms); // servicios que no aceptan paginación
+        features = j.features || []; break;
+      }
       const fs = j.features || [];
       features = features.concat(fs);
       const excedido = j.exceededTransferLimit || j.properties?.exceededTransferLimit;
@@ -138,7 +146,7 @@
       const entradas = catalogo.filter((e) => e.origen === "arcgis" && e.capa !== "departamentos");
       await Promise.all(entradas.map(async (entry) => {
         try {
-          const fc = await consultar(entry, { bbox: [xmin, ymin, xmax, ymax], simplificar: simp });
+          const fc = await consultar(entry, { bbox: [xmin, ymin, xmax, ymax], simplificar: simp, ms: 20000 });
           const acc = {};
           for (const f of API.recortarFC(fc, area).features) {
             if (!f.properties.area_ha) continue;
@@ -161,9 +169,12 @@
       if (pts.length > 60) pts = pts.filter((_, i) => i % Math.ceil(pts.length / 60) === 0);
       if (pts.length < 3) pts.push(turf.pointOnFeature(area));
       const valores = [];
+      let fallos = 0;
       for (let i = 0; i < pts.length; i += 6) {
-        const lote = pts.slice(i, i + 6).map((p) => valorRaster(entry, ...p.geometry.coordinates).catch(() => null));
-        valores.push(...(await Promise.all(lote)));
+        const lote = pts.slice(i, i + 6).map((p) => valorRaster(entry, ...p.geometry.coordinates, 8000).then((v) => ({ v }), () => ({ fallo: true })));
+        const res = await Promise.all(lote);
+        res.forEach((r) => (r.fallo ? fallos++ : valores.push(r.v)));
+        if (i >= 6 && fallos >= i + 6 - 1 && !valores.some((x) => x !== null)) throw new Error("el servidor del IGAC no responde");
       }
       const v = valores.filter((x) => x !== null);
       if (!v.length) throw new Error("sin valores en el área");

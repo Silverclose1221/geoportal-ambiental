@@ -480,8 +480,9 @@
       tile(res?.capas?.some((c) => c.capa === "areas_protegidas") ? fmt(Math.min(100, (100 * prot) / areaHa), 1) : "—", "%", "Área protegida (RUNAP) · meta 30×30") +
       tile(bio ? nf0.format(bio.registros) : "—", "", "Registros GBIF") +
       tile(bio ? (bio.especies_tope ? "≥ 1.000" : nf0.format(bio.especies)) : "—", "", "Especies (GBIF)") +
-      tile(soil ? fmt(soil.media, 1) : "—", "t C/ha", "COS 0–30 cm medio (SoilGrids)") +
-      tile(soil ? nf0.format(soil.total_t) : "—", "t C", "Stock total estimado");
+      (soil || !res?.carbono_igac?.n
+        ? tile(soil ? fmt(soil.media, 1) : "—", "t C/ha", "COS 0–30 cm medio (SoilGrids)") + tile(soil ? nf0.format(soil.total_t) : "—", "t C", "Stock total estimado")
+        : tile(fmt(res.carbono_igac.media, 1), "t C/ha", "COS 0–30 cm medio (IGAC)") + tile(nf0.format(res.carbono_igac.total_t), "t C", "Stock total estimado (IGAC)"));
 
     // Biodiversidad
     if (bio) {
