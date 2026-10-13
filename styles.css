@@ -176,3 +176,25 @@ dialog::backdrop { background: rgba(0,0,0,.35); }
   .sub { display: none; }
   .tab-panel { padding: 12px 16px; }
 }
+
+/* ---- Búsqueda con IA ---- */
+.ia-card { padding: 12px 14px; border-bottom: 1px solid var(--border); background: var(--surface); }
+.ia-card label { display: block; font-weight: 600; font-size: 13px; margin-bottom: 6px; color: var(--text); }
+.ia-fila { display: flex; gap: 8px; }
+.ia-fila input { flex: 1; min-width: 0; }
+.ia-card .muted { margin: 6px 0 0; min-height: 1.2em; }
+
+/* ---- Accesibilidad ---- */
+/* Botón primario en modo oscuro: texto blanco sobre el verde claro daba 2,74:1; el texto oscuro da 6,5:1 */
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .btn:not(.btn-ghost), :root:not([data-theme="light"]) .aviso { color: #0f1a13; } }
+:root[data-theme="dark"] .btn:not(.btn-ghost), :root[data-theme="dark"] .aviso { color: #0f1a13; }
+:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+.salto { position: absolute; left: -9999px; top: 8px; z-index: 3000; background: var(--surface); color: var(--text); padding: 8px 12px; border-radius: var(--radius); border: 1px solid var(--border); }
+.salto:focus { left: 8px; }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; scroll-behavior: auto !important; }
+}
+
+/* ---- Inicio de sesión con GitHub ---- */
+.btn-github { width: 100%; justify-content: center; margin: 4px 0 0; }
+.o-separador { text-align: center; margin: 10px 0 6px; }

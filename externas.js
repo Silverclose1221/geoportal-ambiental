@@ -300,7 +300,7 @@
       const popup = L.popup({ maxWidth: 320 }).setLatLng(e.latlng).setContent("Consultando capas…").openOn(g.mapa);
       const res = await Externas.identificar(e.latlng.lng, e.latlng.lat);
       if (!res.length) { popup.setContent("Sin datos de las capas activas en este punto."); return; }
-      const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+      const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
       popup.setContent(res.map((r) => {
         if (r.error) return `<strong>${esc(r.titulo)}</strong><br><span style="color:#9a5b00">${esc(r.error)}</span>`;
         const filas = Object.entries(r.props).filter(([k, v]) => v !== null && v !== "" && typeof v !== "object" && !/objectid|shape|globalid|^st_/i.test(k))

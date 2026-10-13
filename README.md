@@ -120,3 +120,15 @@ cargar_capas.py         carga de shapefiles/GeoPackage a Supabase
 - GBIF, SoilGrids y WorldCover son servicios externos gratuitos. Si alguno no responde, esa sección muestra un aviso y el resto sigue funcionando.
 - Los resúmenes de normas son orientativos. Verifica siempre el texto oficial (SUIN-Juriscol, Función Pública).
 - Las capas propias que subes desde el visor solo quedan en tu navegador. Para compartirlas, cárgalas con el script.
+
+## Búsqueda con IA
+
+Cuadro "Pregunte al geoportal" en la parte superior del panel. La pregunta se envía a la Edge Function `buscar-ia` (carpeta `supabase/functions/`), que devuelve un plan seguro (municipio, pestaña, taxón, analizar) y `ia.js` lo ejecuta sobre el mapa. Pasos de despliegue, claves y límites: ver `LEEME.md` y `docs/adr/`.
+
+Archivos nuevos: `ia.js`, `supabase/functions/buscar-ia/index.ts`, `DESIGN.md`, `SECURITY.md`, `docs/adr/`.
+
+## Diseño, seguridad y decisiones
+
+- `DESIGN.md`: tokens y reglas visuales (úsalo antes de añadir pantallas).
+- `SECURITY.md`: qué es público, cómo verificar RLS, defensas aplicadas y pendientes.
+- `docs/adr/`: por qué se tomaron las decisiones de arquitectura.

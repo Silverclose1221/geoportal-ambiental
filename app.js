@@ -28,6 +28,8 @@
     const q = (v) => { const s = v === null || v === undefined ? "" : typeof v === "object" ? JSON.stringify(v) : String(v); return /[",;\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s; };
     return "﻿" + [cols.join(","), ...filas.map((f) => cols.map((c) => q(f[c])).join(","))].join("\n");
   }
+  const colorSeguro = (c) => (/^#[0-9a-fA-F]{3,8}$/.test(c || "") ? c : "#2f7d4f"); // evita inyectar CSS desde el catálogo
+  const urlSegura = (u) => (/^https?:\/\//i.test(u || "") ? u : null); // solo http(s), nunca javascript:
   const tile = (valor, unidad, etiqueta) => `<div class="tile"><div><span class="v">${valor}</span><span class="u">${unidad || ""}</span></div><div class="l">${etiqueta}</div></div>`;
   function barras(items, { valor = "v", nombre = "n", unidad = "", total = null } = {}) {
     if (!items.length) return `<p class="muted">Sin datos.</p>`;
@@ -76,11 +78,15 @@
     $("#btn-login").hidden = modo !== "supabase" || !!u;
     $("#btn-logout").hidden = !u;
     $("#usuario").hidden = !u;
-    $("#usuario").textContent = u ? u.email : "";
+    $("#usuario").textContent = u ? (u.email || u.user_metadata?.user_name || "Sesión iniciada") : ""; // con GitHub el correo puede ser privado
   }
   actualizarUsuario();
   document.addEventListener("auth-cambio", actualizarUsuario);
   $("#btn-login").onclick = () => $("#dlg-login").showModal();
+  $("#login-github").onclick = async () => {
+    try { await API.loginGitHub(); } // redirige a GitHub; al volver, onAuthStateChange actualiza la sesión
+    catch (err) { toast("No se pudo iniciar con GitHub: " + err.message, true); }
+  };
   $("#btn-logout").onclick = async () => { await API.logout(); toast("Sesión cerrada"); };
   $("#form-login").addEventListener("submit", async (e) => {
     if (e.submitter?.value !== "ok") return;
@@ -89,10 +95,13 @@
   });
 
   // ---------------------------------------------------------------- pestañas
+  const marcarTabs = () => $$(".tab").forEach((x) => { x.setAttribute("aria-selected", String(x.classList.contains("activa"))); x.setAttribute("aria-controls", "tab-" + x.dataset.tab); });
   $$(".tab").forEach((b) => b.addEventListener("click", () => {
     $$(".tab").forEach((x) => x.classList.toggle("activa", x === b));
     $$(".tab-panel").forEach((p) => p.classList.toggle("activa", p.id === "tab-" + b.dataset.tab));
+    marcarTabs();
   }));
+  marcarTabs();
 
   // ---------------------------------------------------------------- catálogo de capas vectoriales
   const capasMapa = {}; // capa -> L.GeoJSON
@@ -130,7 +139,7 @@
       const cont = $("#capas-" + tema); if (!cont) continue;
       const items = catalogo.filter((c) => c.tema === tema || (tema === "politicas_uso" && c.tema === "base"));
       cont.innerHTML = items.length ? items.map((c) => {
-        const col = c.estilo?.color || "#2f7d4f";
+        const col = colorSeguro(c.estilo?.color);
         return `<label class="capa-item" title="${esc(c.descripcion || "")}">
           <input type="checkbox" data-capa="${esc(c.capa)}" ${c.visible_inicio && (API.modo === "supabase" || c.capa === "departamentos") ? "checked" : ""}/>
           <span class="swatch" style="border-color:${col};background:${c.estilo?.fillOpacity ? col + "55" : "transparent"}"></span>
@@ -315,7 +324,7 @@
       <div class="meta">${esc(n.tipo || "")} · ${esc(n.anio || "")} · ${esc(n.entidad || "")}</div>
       <p>${esc(n.resumen || "")}</p>
       ${n.relacion_mapa ? `<div class="rel">En el mapa: ${esc(n.relacion_mapa)}</div>` : ""}
-      <a target="_blank" rel="noopener" href="${esc(n.url || "https://www.google.com/search?q=" + encodeURIComponent(n.titulo + " texto oficial"))}">${n.url ? "Texto oficial" : "Buscar texto oficial"} ↗</a>
+      <a target="_blank" rel="noopener noreferrer" href="${esc(urlSegura(n.url) || "https://www.google.com/search?q=" + encodeURIComponent(n.titulo + " texto oficial"))}">${urlSegura(n.url) ? "Texto oficial" : "Buscar texto oficial"} ↗</a>
     </article>`).join("") || `<p class="muted">Sin resultados.</p>`;
   }
   $("#normas-buscar").addEventListener("input", pintarNormas);

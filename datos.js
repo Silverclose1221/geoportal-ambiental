@@ -85,6 +85,12 @@
       const { error } = await this.sb.auth.signInWithOtp({ email, options: { emailRedirectTo: location.href.split("#")[0] } });
       if (error) throw error;
     },
+    async loginGitHub() {
+      if (!this.sb) throw new Error("Configure Supabase para iniciar sesión.");
+      // La URL de retorno debe estar en Authentication > URL Configuration > Redirect URLs
+      const { error } = await this.sb.auth.signInWithOAuth({ provider: "github", options: { redirectTo: location.href.split("#")[0].split("?")[0] } });
+      if (error) throw error;
+    },
     async logout() { if (this.sb) await this.sb.auth.signOut(); },
 
     // ---------- catálogo, normas
