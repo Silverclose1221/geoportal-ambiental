@@ -49,7 +49,14 @@
   // Consulta de entidades (paginada) en formato GeoJSON
   async function consultar(entry, { bbox, punto, where = "1=1", geometria = true, simplificar = 0, max = 15000, campos = "*", ms = TIMEOUT } = {}) {
     if (SIN_FILTRO.has(entry.capa) && (bbox || punto)) {
-      if (!cacheSinFiltro[entry.capa]) cacheSinFiltro[entry.capa] = consultar(entry, { simplificar: 0.001, max: 500, ms: 25000 }).catch((e) => { delete cacheSinFiltro[entry.capa]; throw e; });
+      // Primero el archivo del propio sitio (el servicio del IGAC para estas capas es intermitente); si falla, se intenta el IGAC
+      if (!cacheSinFiltro[entry.capa]) {
+        cacheSinFiltro[entry.capa] = fetch(`${entry.capa}.geojson`)
+          .then((r) => { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
+          .then((fc) => normalizar(entry, API.FC(fc.features || [])))
+          .catch(() => consultar(entry, { simplificar: 0.001, max: 500, ms: 25000 }))
+          .catch((e) => { delete cacheSinFiltro[entry.capa]; throw e; });
+      }
       const todo = await cacheSinFiltro[entry.capa];
       let fs = todo.features;
       if (bbox) {
