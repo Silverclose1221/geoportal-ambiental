@@ -198,3 +198,25 @@ dialog::backdrop { background: rgba(0,0,0,.35); }
 /* ---- Inicio de sesión con GitHub ---- */
 .btn-github { width: 100%; justify-content: center; margin: 4px 0 0; }
 .o-separador { text-align: center; margin: 10px 0 6px; }
+
+/* ---- Aviso de privacidad y «Mis datos» ---- */
+dialog.ancho { width: min(640px, calc(100vw - 32px)); max-height: calc(100vh - 32px); padding: 0; overflow: hidden; }
+dialog.ancho[open] { display: flex; flex-direction: column; }
+.dlg-cab { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 18px; border-bottom: 1px solid var(--border); }
+.dlg-cab h2 { margin: 0; font-size: 15px; }
+.dlg-cab form { margin: 0; }
+.dlg-cuerpo { padding: 14px 18px 18px; overflow-y: auto; }
+.dlg-cuerpo h3 { font-size: 13px; margin: 16px 0 6px; }
+.texto-legal { font-size: 13px; line-height: 1.55; }
+.texto-legal p, .texto-legal ul { margin: 6px 0; }
+.texto-legal ul { padding-left: 20px; }
+.texto-legal li { margin: 4px 0; }
+.acepto { display: flex; gap: 8px; align-items: flex-start; font-size: 12.5px; margin: 8px 0; color: var(--text-2); }
+.acepto input { width: auto; margin-top: 2px; accent-color: var(--brand); flex: none; }
+.btn.peligro { border-color: #b3402a; }
+.btn:not(.btn-ghost).peligro { background: #b3402a; color: #fff; }
+.btn.peligro:disabled { opacity: .5; cursor: not-allowed; }
+.btn-ghost.peligro { color: #b3402a; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .btn-ghost.peligro { color: #f0907c; } :root:not([data-theme="light"]) .btn.peligro { border-color: #f0907c; } }
+:root[data-theme="dark"] .btn-ghost.peligro { color: #f0907c; }
+.creditos .link { margin-top: 6px; }

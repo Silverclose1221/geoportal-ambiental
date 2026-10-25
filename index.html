@@ -13,7 +13,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.css" />
-  <link rel="stylesheet" href="styles.css?v=8" />
+  <link rel="stylesheet" href="styles.css?v=9" />
 </head>
 <body>
   <a class="salto" href="#contenido">Saltar al contenido</a>
@@ -29,6 +29,7 @@
     <div class="top-actions">
       <span id="estado-conexion" class="badge">Conectando…</span>
       <span id="usuario" class="usuario" hidden></span>
+      <button id="btn-misdatos" class="btn btn-ghost" data-abrir="misdatos" hidden>Mis datos</button>
       <button id="btn-login" class="btn btn-ghost" hidden>Iniciar sesión</button>
       <button id="btn-logout" class="btn btn-ghost" hidden>Salir</button>
     </div>
@@ -246,6 +247,7 @@
       </section>
       <footer class="creditos">
         Datos: GBIF.org · ISRIC SoilGrids · ESA WorldCover · geoBoundaries · capas oficiales cargadas en la base de datos (IDEAM, IGAC, PNN, DANE, UPRA). Verifique siempre la fuente oficial.
+        <br /><button type="button" class="link" data-abrir="privacidad">Aviso de privacidad</button>
       </footer>
     </aside>
 
@@ -260,6 +262,7 @@
     <form method="dialog" id="form-login">
       <h2>Iniciar sesión</h2>
       <p class="muted">Entre con GitHub o reciba un enlace de acceso en su correo. Solo se necesita para guardar muestras y observaciones.</p>
+      <label class="acepto"><input type="checkbox" id="acepto-datos" name="acepto" required /> He leído y acepto el <button type="button" class="link" data-abrir="privacidad">aviso de privacidad</button> y el tratamiento de mis datos personales.</label>
       <button type="button" class="btn btn-ghost btn-github" id="login-github">Continuar con GitHub</button>
       <p class="muted o-separador">o con su correo</p>
       <div class="field"><label>Correo</label><input type="email" name="email" required /></div>
@@ -268,6 +271,85 @@
         <button class="btn btn-ghost" value="cancel" formnovalidate>Cancelar</button>
       </div>
     </form>
+  </dialog>
+
+  <dialog id="dlg-privacidad" class="ancho" aria-labelledby="priv-titulo">
+    <div class="dlg-cab"><h2 id="priv-titulo">Aviso de privacidad y tratamiento de datos personales</h2><form method="dialog"><button class="btn btn-ghost" aria-label="Cerrar">Cerrar</button></form></div>
+    <div class="dlg-cuerpo texto-legal">
+      <p class="muted">Versión 1.0 · 25 de octubre de 2026 · Ley 1581 de 2012, Decreto 1377 de 2013 (incorporado al Decreto 1074 de 2015) y demás normas concordantes.</p>
+      <h3>1. Responsable</h3>
+      <p id="priv-responsable"></p>
+      <p id="priv-contacto"></p>
+      <h3>2. Qué datos se tratan</h3>
+      <ul>
+        <li><strong>Consultar el mapa no requiere cuenta</strong> ni deja datos personales en este proyecto.</li>
+        <li><strong>Si inicia sesión:</strong> su correo electrónico o, si usa GitHub, su nombre de usuario e identificador de GitHub y el correo que GitHub comparta; un identificador interno de la cuenta; y, si lo diligencia, su nombre e institución (opcionales) y la fecha en que aceptó este aviso.</li>
+        <li><strong>Lo que usted registre:</strong> observaciones de biodiversidad y muestras de suelo con sus coordenadas, fechas y notas. Evite escribir en las notas datos personales de terceros.</li>
+        <li><strong>No se solicitan datos sensibles</strong> ni de menores de edad. Este geoportal no está dirigido a menores de 18 años.</li>
+      </ul>
+      <h3>3. Para qué se usan (finalidades)</h3>
+      <ul>
+        <li>Permitir iniciar sesión y guardar, editar y borrar sus propios registros.</li>
+        <li>Mostrar en el mapa y en los análisis las observaciones y muestras aportadas, con fines científicos, educativos y de gestión ambiental.</li>
+        <li>Mantener la seguridad del servicio (por ejemplo, límite de consultas por dirección IP en la búsqueda con IA) y atender sus solicitudes sobre datos.</li>
+      </ul>
+      <p><strong>Importante:</strong> las observaciones y muestras que guarde son <strong>públicas</strong>: cualquier visitante puede ver sus datos de campo, su ubicación y un identificador interno anónimo de la cuenta (no su correo ni su nombre). Los datos de su perfil (nombre, institución) y su correo no se muestran a otras personas.</p>
+      <h3>4. Búsqueda con IA</h3>
+      <p>El texto que escriba en «Pregunte al geoportal» se envía a una función propia y de allí a un proveedor de IA (Google Gemini o Groq, según disponibilidad) únicamente para convertirlo en una acción del mapa. El proyecto no guarda esas preguntas. No escriba datos personales en ese cuadro.</p>
+      <h3>5. Con quién se comparten o se procesan</h3>
+      <ul>
+        <li><strong>Supabase</strong> (base de datos y autenticación; servidores en Estados Unidos).</li>
+        <li><strong>GitHub</strong> (alojamiento de la página e inicio de sesión opcional con su cuenta).</li>
+        <li><strong>Google Fonts, cdnjs y jsDelivr</strong> (tipografía y librerías); <strong>GBIF, ISRIC y ESA</strong> (datos del mapa). Al cargar la página, su navegador contacta a estos servicios y estos pueden ver su dirección IP.</li>
+        <li>Proveedores de IA mencionados en el punto 4.</li>
+      </ul>
+      <p>Estos terceros actúan como encargados o proveedores de infraestructura y tratan datos fuera de Colombia (transferencia/transmisión internacional). No se venden ni se ceden datos a terceros con fines comerciales.</p>
+      <h3>6. Sus derechos como titular</h3>
+      <p>Usted puede, de forma gratuita: conocer, actualizar y rectificar sus datos; pedir prueba de la autorización; ser informado del uso que se les da; revocar la autorización y solicitar la supresión de sus datos; acceder a ellos; y presentar quejas ante la Superintendencia de Industria y Comercio (SIC) por infracciones a la ley.</p>
+      <p>Cómo ejercerlos: <strong>desde el panel «Mis datos»</strong> (botón en la barra superior, con sesión iniciada) puede corregir su perfil, descargar sus datos en JSON, borrar sus observaciones y muestras, y eliminar su cuenta. También puede escribir por el medio indicado en el punto 1; se responde en los plazos de la ley (consultas: 10 días hábiles; reclamos: 15 días hábiles).</p>
+      <h3>7. Autorización, conservación y seguridad</h3>
+      <p>Al marcar la casilla de aceptación e iniciar sesión usted autoriza de manera libre, previa e informada el tratamiento descrito. Es voluntario: si no acepta puede seguir consultando el mapa sin cuenta. Los datos se conservan mientras exista su cuenta; al eliminarla se borran su perfil y acceso, y sus registros se borran o quedan sin autor, según lo que usted elija. Las conexiones usan HTTPS y el acceso a los datos está limitado por políticas de seguridad a nivel de fila (RLS) en la base de datos.</p>
+      <h3>8. Cambios</h3>
+      <p>Si este aviso cambia, se publicará aquí una nueva versión con su fecha.</p>
+    </div>
+  </dialog>
+
+  <dialog id="dlg-misdatos" class="ancho" aria-labelledby="md-titulo">
+    <div class="dlg-cab"><h2 id="md-titulo">Mis datos</h2><form method="dialog"><button class="btn btn-ghost" aria-label="Cerrar">Cerrar</button></form></div>
+    <div class="dlg-cuerpo">
+      <p class="muted" id="md-cuenta"></p>
+      <p class="muted" id="md-estado" aria-live="polite"></p>
+
+      <h3>Perfil</h3>
+      <form id="form-perfil" class="form">
+        <div class="row">
+          <div class="field"><label for="pf-nombre">Nombre (opcional)</label><input id="pf-nombre" name="nombre" maxlength="120" autocomplete="name" /></div>
+          <div class="field"><label for="pf-inst">Institución (opcional)</label><input id="pf-inst" name="institucion" maxlength="120" autocomplete="organization" /></div>
+        </div>
+        <p class="muted">Su nombre e institución no se muestran a otras personas.</p>
+        <button class="btn" type="submit">Guardar perfil</button>
+      </form>
+
+      <h3>Aviso de privacidad</h3>
+      <p class="muted" id="md-consent"></p>
+      <div class="row">
+        <button class="btn" id="md-aceptar" type="button" hidden>Aceptar el aviso</button>
+        <button class="btn btn-ghost" type="button" data-abrir="privacidad">Leer el aviso</button>
+      </div>
+
+      <h3>Mis registros</h3>
+      <p>Observaciones: <strong id="md-n-obs">—</strong> · Muestras de carbono: <strong id="md-n-mue">—</strong></p>
+      <div class="row">
+        <button class="btn btn-ghost" id="md-exportar" type="button">Descargar mis datos (JSON)</button>
+        <button class="btn btn-ghost peligro" id="md-borrar-registros" type="button">Borrar mis registros</button>
+      </div>
+
+      <h3>Eliminar mi cuenta</h3>
+      <p class="muted">Se borra su acceso y su perfil. Esta acción no se puede deshacer.</p>
+      <label class="acepto"><input type="checkbox" id="md-conservar" /> Conservar mis observaciones y muestras como registros anónimos (si no lo marca, también se borran).</label>
+      <div class="field"><label for="md-confirmar">Para confirmar, escriba ELIMINAR</label><input id="md-confirmar" autocomplete="off" /></div>
+      <button class="btn peligro" id="md-eliminar" type="button" disabled>Eliminar mi cuenta definitivamente</button>
+    </div>
   </dialog>
 
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
@@ -279,10 +361,11 @@
   <script defer src="https://cdn.jsdelivr.net/npm/geotiff@2.1.3/dist-browser/geotiff.js"></script>
   <script defer src="https://cdn.jsdelivr.net/npm/shpjs@4.0.4/dist/shp.min.js"></script>
   <script defer src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
-  <script defer src="config.js?v=5"></script>
+  <script defer src="config.js?v=6"></script>
   <script defer src="datos.js?v=6"></script>
   <script defer src="externas.js?v=6"></script>
-  <script defer src="app.js?v=7"></script>
+  <script defer src="app.js?v=8"></script>
   <script defer src="ia.js?v=2"></script>
+  <script defer src="cuenta.js?v=1"></script>
 </body>
 </html>

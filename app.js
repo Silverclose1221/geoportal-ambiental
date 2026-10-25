@@ -84,12 +84,15 @@
   document.addEventListener("auth-cambio", actualizarUsuario);
   $("#btn-login").onclick = () => $("#dlg-login").showModal();
   $("#login-github").onclick = async () => {
+    if (!$("#acepto-datos").checked) { toast("Acepte el aviso de privacidad para continuar.", true); return; }
+    window.__consentimiento?.pedir();
     try { await API.loginGitHub(); } // redirige a GitHub; al volver, onAuthStateChange actualiza la sesión
     catch (err) { toast("No se pudo iniciar con GitHub: " + err.message, true); }
   };
   $("#btn-logout").onclick = async () => { await API.logout(); toast("Sesión cerrada"); };
   $("#form-login").addEventListener("submit", async (e) => {
     if (e.submitter?.value !== "ok") return;
+    window.__consentimiento?.pedir();
     try { await API.login(new FormData(e.target).get("email")); toast("Revise su correo y abra el enlace de acceso."); }
     catch (err) { toast(err.message, true); }
   });

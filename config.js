@@ -9,6 +9,11 @@ window.GEOPORTAL_CONFIG = {
   SUPABASE_URL: "https://imbezkfgyrqgluoodrkz.supabase.co",
   SUPABASE_ANON_KEY: "sb_publishable_Izvky6iWETLSVJumFIj_Dg_juzcw5YR", // clave pública (segura con RLS)
 
+  // Aviso de privacidad (Ley 1581 de 2012): quién responde por los datos y cómo contactarlo.
+  // Pon aquí tu nombre y un correo si quieres que aparezcan en el aviso (el repo es público).
+  RESPONSABLE_DATOS: "",          // ej.: "Nombre Apellido, responsable del proyecto"
+  CONTACTO_PRIVACIDAD_EMAIL: "",  // ej.: "privacidad@midominio.co"
+
   // Vista inicial (Colombia)
   CENTRO: [4.3, -73.5],
   ZOOM: 6,

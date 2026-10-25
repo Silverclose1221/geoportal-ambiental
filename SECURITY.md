@@ -19,6 +19,13 @@ Toda tabla con datos propios debe tener `rowsecurity = true`. Tablas escribibles
 - Texto de la IA se pinta con `textContent`, nunca con `innerHTML`.
 - Revisar el panel de gasto del proveedor de IA y poner un tope mensual.
 
+## Privacidad y cuenta (Ley 1581 de 2012)
+- Aviso de privacidad dentro de la página (pie y diálogo de inicio de sesión); la casilla de aceptación es obligatoria para iniciar sesión y la fecha queda en `perfiles.acepta_datos_at`.
+- Panel «Mis datos» (`cuenta.js`): editar perfil, descargar los propios datos (JSON), borrar los propios registros y eliminar la cuenta. Todo con la sesión de la persona y RLS.
+- Edge Function `eliminar-cuenta`: identifica a la persona **solo** por su token de sesión (`auth.getUser`), usa la clave de servicio que Supabase inyecta en el entorno (nunca está en el repo) y borra o anonimiza (`user_id = null`) sus observaciones y muestras antes de eliminar el usuario.
+- Las observaciones y muestras son de lectura pública (incluyen coordenadas y un `user_id` anónimo); el aviso lo dice expresamente.
+- Para que aparezcan tu nombre y un correo de contacto en el aviso, llena `RESPONSABLE_DATOS` y `CONTACTO_PRIVACIDAD_EMAIL` en `config.js` (el repo es público: usa un correo que quieras exponer).
+
 ## Defensas del front-end
 - Todo dato externo (catálogo, normas, propiedades de capas, GBIF) pasa por `esc()` antes de entrar a HTML.
 - Colores del catálogo validados (`colorSeguro`) y URLs de normas limitadas a `http(s)` (`urlSegura`).
