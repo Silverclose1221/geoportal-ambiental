@@ -107,3 +107,6 @@
 
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", montar); else montar();
 })();
+
+// Fichas de especies invasoras (se carga aparte para no tocar index.html)
+(function () { const s = document.createElement("script"); s.src = "invasoras.js?v=1"; s.defer = true; document.head.append(s); })();
