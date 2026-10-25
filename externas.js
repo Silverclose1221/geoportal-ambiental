@@ -41,8 +41,21 @@
     return fc;
   }
 
+  // Capas pequeñas cuyo servicio del IGAC se cuelga con cualquier filtro espacial (bbox, punto o imagen):
+  // se descargan completas una sola vez (simplificadas) y se filtran en el navegador.
+  const SIN_FILTRO = new Set(["humedales_ramsar"]);
+  const cacheSinFiltro = {};
+
   // Consulta de entidades (paginada) en formato GeoJSON
   async function consultar(entry, { bbox, punto, where = "1=1", geometria = true, simplificar = 0, max = 15000, campos = "*", ms = TIMEOUT } = {}) {
+    if (SIN_FILTRO.has(entry.capa) && (bbox || punto)) {
+      if (!cacheSinFiltro[entry.capa]) cacheSinFiltro[entry.capa] = consultar(entry, { simplificar: 0.001, max: 500, ms: 25000 }).catch((e) => { delete cacheSinFiltro[entry.capa]; throw e; });
+      const todo = await cacheSinFiltro[entry.capa];
+      let fs = todo.features;
+      if (bbox) { const bp = turf.bboxPolygon(bbox); fs = fs.filter((f) => turf.booleanIntersects(f, bp)); }
+      if (punto) { const pt = turf.point(punto); fs = fs.filter((f) => turf.booleanPointInPolygon(pt, f)); }
+      return API.FC(structuredClone(fs.slice(0, max)));
+    }
     const base = { where, outFields: campos, returnGeometry: geometria, outSR: 4326, f: "geojson", geometryPrecision: 6 };
     if (simplificar) base.maxAllowableOffset = simplificar;
     if (bbox) Object.assign(base, { geometry: bbox.join(","), geometryType: "esriGeometryEnvelope", inSR: 4326, spatialRel: "esriSpatialRelIntersects" });
@@ -115,7 +128,11 @@
       const reg = activas.get(entry.capa);
       if (!on) { if (reg?.capaMapa) mapa.removeLayer(reg.capaMapa); activas.delete(entry.capa); return; }
       let capaMapa = reg?.capaMapa;
-      if (!capaMapa && entry.origen === "arcgis") {
+      if (!capaMapa && entry.origen === "arcgis" && SIN_FILTRO.has(entry.capa)) {
+        const est = { color: "#1f78b4", weight: 1, fillOpacity: 0.4, ...(entry.estilo || {}) };
+        capaMapa = L.geoJSON(null, { style: est, interactive: false });
+        consultar(entry, { bbox: [-82, -5, -66, 14] }).then((fc) => capaMapa.addData(fc)).catch(() => {});
+      } else if (!capaMapa && entry.origen === "arcgis") {
         capaMapa = new CapaExport(entry, { attribution: entry.fuente || "", zIndex: 350 + (entry.orden || 0) });
         capaMapa.on("tileerror", () => {});
       }
