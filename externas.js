@@ -52,7 +52,11 @@
       if (!cacheSinFiltro[entry.capa]) cacheSinFiltro[entry.capa] = consultar(entry, { simplificar: 0.001, max: 500, ms: 25000 }).catch((e) => { delete cacheSinFiltro[entry.capa]; throw e; });
       const todo = await cacheSinFiltro[entry.capa];
       let fs = todo.features;
-      if (bbox) { const bp = turf.bboxPolygon(bbox); fs = fs.filter((f) => turf.booleanIntersects(f, bp)); }
+      if (bbox) {
+        const bp = turf.bboxPolygon(bbox);
+        const toca = (f) => { const b = turf.bbox(f); return !(b[2] < bbox[0] || b[0] > bbox[2] || b[3] < bbox[1] || b[1] > bbox[3]); };
+        fs = fs.filter((f) => toca(f) && turf.booleanIntersects(f, bp));
+      }
       if (punto) { const pt = turf.point(punto); fs = fs.filter((f) => turf.booleanPointInPolygon(pt, f)); }
       return API.FC(structuredClone(fs.slice(0, max)));
     }
