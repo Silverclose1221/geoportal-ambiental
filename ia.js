@@ -110,3 +110,5 @@
 
 // Fichas de especies invasoras (se carga aparte para no tocar index.html)
 (function () { const s = document.createElement("script"); s.src = "invasoras.js?v=1"; s.defer = true; document.head.append(s); })();
+// Categorías de amenaza (UICN)
+(function () { const s = document.createElement("script"); s.src = "amenazadas.js?v=1"; s.defer = true; document.head.append(s); })();
